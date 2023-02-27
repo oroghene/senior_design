@@ -5,11 +5,11 @@ import matplotlib.pyplot as plt
 #lidar = RPLidar('/dev/ttyUSB0')
 lidar = RPLidar('/dev/tty.usbserial-0001')
 
-"""info = lidar.get_info()
+info = lidar.get_info()
 print(info)
 
 health = lidar.get_health()
-print(health)"""
+print(health)
 
 
 for i, scan in enumerate(lidar.iter_scans()):
