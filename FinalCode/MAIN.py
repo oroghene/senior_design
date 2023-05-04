@@ -30,7 +30,7 @@ def find_furthest_distance(points):
     return 0.5
 
 def orient_car(t):
-    motor.setMotorModel(1500,1500,-1000,-1000) # Turn right
+    motor.setMotorModel(1500,1500,-1000,-1000) # Turn Left
     time.sleep(t)
     motor.setMotorModel(0,0, 0, 0)
     return
