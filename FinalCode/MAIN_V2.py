@@ -1,62 +1,87 @@
 from Motor import Motor
-from Lidar import Lidar
 import math
+import numpy as np
+import time
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+from rplidar import RPLidar
+
+PORT_NAME = '/dev/ttyUSB0'  # Change this to the correct port name for your Rplidar
+lidar = RPLidar(PORT_NAME)
+lidar.__init__(PORT_NAME, 115200,3,None)
+lidar.connect()
+lidar.set_pwm(550)
+
+info = lidar.get_info()
+health = lidar.get_health()
+print("Info:\n", info, "\nHealth:\n", health, "\nIter scans:\n",lidar.iter_scans())
 
 # Initialize motor and lidar objects
 motor = Motor()
-lidar = Lidar()
 
-# Define constants for motor control
-FORWARD_SPEED = 2000
-BACKWARD_SPEED = -2000
-LEFT_SPEED = -500
-RIGHT_SPEED = 500
+#Define car boundaries
+LF = [135, 50] #lEFT FRONT CORNER, [DEGREES, DISTANCE]
+RF = [205, 50] #RIGHT FRONT CORNER,[DEGREES, DISTANCE]
+LB = [45, 150] #LEFT BACK CORNER,[DEGREES, DISTANCE]
+RB = [315, 150] #RIGHT BACK CORNER,[DEGREES, DISTANCE]
 
-# Define function to calculate distance between two points
-def distance(x1, y1, x2, y2):
-    return math.sqrt((x2-x1)**2 + (y2-y1)**2)
+def find_furthest_distance(points):
+    pass
+    return 0.5
 
-# Define function to find furthest distance without an obstacle
-def find_furthest_distance():
-    # Read lidar data
-    data = lidar.get_data()
+def orient_car(t):
+    motor.setMotorModel(1500,1500,-1000,-1000) # Turn Left
+    time.sleep(t)
+    motor.setMotorModel(0,0, 0, 0)
+    return
 
-    # Find furthest distance without an obstacle
-    max_distance = 0
-    max_x, max_y = 0, 0
-    for point in data:
-        x, y = point
-        d = distance(0, 0, x, y)
-        if d > max_distance:
-            max_distance = d
-            max_x, max_y = x, y
-
-    return max_distance, max_x, max_y
-
-# Define function to orient the car in the direction of the furthest distance
-def orient_car(max_x, max_y):
-    angle = math.atan2(max_y, max_x)
-    angle_degrees = math.degrees(angle)
-    if angle_degrees < -45:
-        motor.setMotorModel(0, 0, LEFT_SPEED, RIGHT_SPEED)
-    elif angle_degrees > 45:
-        motor.setMotorModel(RIGHT_SPEED, LEFT_SPEED, 0, 0)
+def detect_obstacles(points):
+    front = np.array([0,700])
+    for p in points:
+        if (p[0] < 270) and (p[0] > 90):
+            front = np.vstack([front, p])
+    print("Front:", min(front[:,1]))
+    if min(front[:,1]) >= 250:
+        print("Front is Clear")
+        return True
     else:
-        motor.setMotorModel(FORWARD_SPEED, FORWARD_SPEED, FORWARD_SPEED, FORWARD_SPEED)
+        print("Obstruction!", front[:,1].any() >= 50)
+        return False
 
 # Define main function to run the car autonomously
 def main():
     try:
+        z = 0
         while True:
-            # Find furthest distance without an obstacle
-            max_distance, max_x, max_y = find_furthest_distance()
-
-            # Orient the car in the direction of the furthest distance
-            orient_car(max_x, max_y)
+           
+           for i, data in enumerate(lidar.iter_scans()):
+                points = [[a, d] for (_, a, d) in list(data)]
+                print(i, points)
+             
+                #Check if it is safe to move forward
+                clear = True
+                clear = detect_obstacles(points)
+                
+                
+                if clear is True:
+                    motor.setMotorModel(-500, -500, -500, -500) # Move forward
+                    print ("The car is moving forward")
+                else:
+                    motor.setMotorModel(0, 0, 0, 0)
+                    time.sleep(2)
+                    orient_car(1)
+                    
+                
 
     except KeyboardInterrupt:
         # Stop the car
         motor.setMotorModel(0, 0, 0, 0)
+        
+        # Stop the Lidar
+        lidar.stop()
+        lidar.stop_motor()
+        lidar.disconnect()
 
 if __name__ == '__main__':
     main()
+
