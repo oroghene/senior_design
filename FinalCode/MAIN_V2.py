@@ -26,8 +26,17 @@ LB = [45, 150] #LEFT BACK CORNER,[DEGREES, DISTANCE]
 RB = [315, 150] #RIGHT BACK CORNER,[DEGREES, DISTANCE]
 
 def find_furthest_distance(points):
+    paths = []
+    walls = []
+    temp = []
+    for i in range(1,len(points)+1):
+        if points[i][1] >= points[i-1][1]*1.05:
+            temp.append(points[i][1])
+        else:
+            paths.append(temp)
+            temp = []
     pass
-    return 0.5
+    return paths[max(len(elem) for elem in paths)]
 
 def orient_car(t):
     motor.setMotorModel(1500,1500,-1000,-1000) # Turn Left
@@ -36,6 +45,10 @@ def orient_car(t):
     return
 
 def detect_obstacles(points):
+    pass
+    return True
+
+def clear_path_ahead(points):
     front = np.array([0,700])
     for p in points:
         if (p[0] < 270) and (p[0] > 90):
@@ -60,7 +73,7 @@ def main():
              
                 #Check if it is safe to move forward
                 clear = True
-                clear = detect_obstacles(points)
+                clear = clear_path_ahead(points)
                 
                 
                 if clear is True:
