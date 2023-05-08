@@ -20,10 +20,10 @@ print("Info:\n", info, "\nHealth:\n", health, "\nIter scans:\n",lidar.iter_scans
 motor = Motor()
 
 #Define car boundaries
-LF = [315, 50] #lEFT FRONT CORNER, [DEGREES, DISTANCE]
-RF = [45, 50] #RIGHT FRONT CORNER,[DEGREES, DISTANCE]
-LB = [230, 150] #LEFT BACK CORNER,[DEGREES, DISTANCE]
-RB = [260, 150] #RIGHT BACK CORNER,[DEGREES, DISTANCE]
+LF = [135, 50] #lEFT FRONT CORNER, [DEGREES, DISTANCE]
+RF = [205, 50] #RIGHT FRONT CORNER,[DEGREES, DISTANCE]
+LB = [45, 150] #LEFT BACK CORNER,[DEGREES, DISTANCE]
+RB = [315, 150] #RIGHT BACK CORNER,[DEGREES, DISTANCE]
 
 def find_furthest_distance(points):
     pass
