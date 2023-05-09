@@ -1,6 +1,6 @@
-
-import csv
 import numpy as np
+import csv
+
 
 # Import csv and create list of Lidar points
 Points = []
@@ -23,7 +23,7 @@ def find_furthest_distance(points):
             temp.append(points[i])
         else:
             if len(temp) > 0:
-                paths = vstack([paths, temp])
+                paths = np.vstack([paths, temp])
             temp = []
     print('Paths:', paths)
     return paths[max(len(elem) for elem in paths)]
