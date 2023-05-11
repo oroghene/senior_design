@@ -1,7 +1,7 @@
-import numpy as np
 import csv
-import matplotlib.pyplot as plt
 
+import matplotlib.pyplot as plt
+import numpy as np
 
 # Import csv and create list of Lidar points
 Points_rad = np.array([[0,0]])
