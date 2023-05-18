@@ -6,47 +6,38 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from rplidar import RPLidar
 import socket
-import threading
 
-# =============== SERVER ===============
+# =============== CLIENT ===============
 HEADER = 64
-PORT = 5050
+PORT = 8000
+# SERVER = "127.0.0.1"
 SERVER = socket.gethostbyname(socket.gethostname())
 ADDR = (SERVER, PORT)
 FORMAT = 'utf-8'
 DISCONNECT_MESSAGE = '!DISCONNECT'
 
-server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server.bind(ADDR)
+client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+print(f'client:\n{client}')
+client.connect(ADDR)
 
-def handle_client(conn, addr):
-    print(f"[NEW CONNECTION] {addr} connected.")
-    connected = True
-    while connected:
-        msg_len = conn.recv(HEADER).decode(FORMAT)
-        if msg_len:    
-            msg_len = int(msg_len)
-            msg = conn.recv(msg_len).decode(FORMAT)
-            if msg == DISCONNECT_MESSAGE:
-                connected = False
-                break
-            print(f'[{addr}] {msg}')
-            conn.send("Msg received".encode(FORMAT)) # send to client
+def send(msg):
+    message = msg.encode(FORMAT)
+    msg_len = len(message)
+    send_len = str(msg_len).encode(FORMAT)
+    send_len += b' ' * (HEADER - len(send_len))
+    client.send(send_len)
+    client.send(message) # send to server
+    print(client.recv(2048).decode(FORMAT))
 
-    conn.close()
-
-def start():
-    server.listen()
-    print(f'[LISTENING] Server is listening on {SERVER}')
-    while True:
-        conn, addr = server.accept()
-        thread = threading.Thread(target=handle_client, args=(conn, addr))
-        thread.start()
-        print(f"[ACTIVE CONNECTIONS] {threading.activeCount() - 1}")
-
-print("[STARTING] server is starting...")
-start()
-# =============== SERVER ===============
+send('Hello World')
+input()
+send('Casamigos')
+input()
+send('For my amigos')
+input()
+send('It\'s gone')
+# send(DISCONNECT_MESSAGE)
+# =============== CLIENT ===============
 
 # Set up lidar 
 PORT_NAME = '/dev/ttyUSB0'  # Change this to the correct port name for your Rplidar
@@ -63,15 +54,15 @@ print("Info:\n", info, "\nHealth:\n", health, "\nIter scans:\n",lidar.iter_scans
 motor = Motor()
 
 #Define car boundaries and parameters
-LF = [135, 50] #lEFT FRONT CORNER, [DEGREES, DISTANCE]
-RF = [205, 50] #RIGHT FRONT CORNER,[DEGREES, DISTANCE]
-LB = [45, 150] #LEFT BACK CORNER,[DEGREES, DISTANCE]
-RB = [315, 150] #RIGHT BACK CORNER,[DEGREES, DISTANCE]
+LF = [135, 150] #lEFT FRONT CORNER, [DEGREES, DISTANCE]
+RF = [205, 150] #RIGHT FRONT CORNER,[DEGREES, DISTANCE]
+LB = [45, 250] #LEFT BACK CORNER,[DEGREES, DISTANCE]
+RB = [315, 250] #RIGHT BACK CORNER,[DEGREES, DISTANCE]
 
-FS = (-500, -500, -500, -500) #Foward speed
-RS = (500, 500, 500, 500) #Reverse speed
-RS = (-1000, -1000, 1500, 1500) #Right turn
-LS = (1000, 1000, -1500, -1500) #Left turn
+FS = (-2000, -2000, -2000, -2000) #Foward speed
+BS = (500, 500, 500, 500) #Reverse speed
+RS = (-2000, -2000, 2500, 2500) #Right turn
+LS = (2000, 2000, -2500, -2500) #Left turn
 NS = (0,0,0,0) #No speed
 
 # Set up functions for car control
@@ -96,13 +87,13 @@ def orient_car(points):
     if angle >= 180:
         print('Turning', angle, 'degrees to the right...')
         motor.setMotorModel(RS[0],RS[1],RS[2],RS[3]) # Turn Right
-        t = (angle/9)*0.0825
+        t = ((angle-180)/9)*0.0825
         time.sleep(t)
         
     elif angle < 180:
         print('Turning', 360 - angle, 'degrees to the left...')
         motor.setMotorModel(LS[0],LS[1],LS[2],LS[3]) # Turn Left
-        t = ((360 - angle)/9)*0.0825
+        t = ((180-angle)/9)*0.0825
         time.sleep(t)
         
     print('Done orienting.')
@@ -135,7 +126,7 @@ def align_car(points):
 def clear_path_ahead(points):
     front = np.array([[0,700]])
     for p in points:
-        if (p[0] < 270) and (p[0] > 90):
+        if (p[0] < 250) and (p[0] > 70):
             front = np.vstack([front, p])
     #print("Closest obstacle is", min(front[:,1]),"mm away")
     print("Front",min(front[:,1]))
@@ -147,7 +138,7 @@ def clear_path_ahead(points):
         print("Front is Clear")
         return True
 
-'''def find_furthest_distance(points):
+def find_furthest_distance(points):
     try:
         print("Finding best path (most open spaces)...")
         start = [] # Holds indices of first point in paths
@@ -196,8 +187,12 @@ def clear_path_ahead(points):
         return best_path
     
     except IndexError:
-        print("Failed to find best path\n Turning right")
-        return [[90, 1000],[180,1000]]
+        print("Failed to find best path\n Turning around")
+        print('Backing up...')
+        motor.setMotorModel(BS[0],BS[1],BS[2],BS[3]) # Turn Right
+        t = 1
+        time.sleep(t)
+        return [[360, 1000],[360,1000]]
 '''
 def find_furthest_distance(points, angle_gap=10):
     try:
@@ -268,7 +263,7 @@ def find_furthest_distance(points, angle_gap=10):
     except IndexError:
         print("Failed to find best path\n Turning right")
         return [[90, 1000],[180,1000]]
-
+'''
 def detect_obstacles(points):
     pass
     return True
@@ -288,7 +283,8 @@ def main():
            for i, data in enumerate(lidar.iter_scans()): 
                 points = [[a, d] for (_, a, d) in list(data)]
                 print(i, points)
-             
+                print("[SENDING] client is sending points")
+                #send(points)
                 #Check if it is safe to move forward
                 if clear_path_ahead(points) is True:
                     # If path is clear, move forward
