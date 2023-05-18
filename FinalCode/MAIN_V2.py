@@ -6,47 +6,37 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from rplidar import RPLidar
 import socket
-import threading
 
-# =============== SERVER ===============
+# =============== CLIENT ===============
 HEADER = 64
 PORT = 5050
+# SERVER = "192.168.1.152"
 SERVER = socket.gethostbyname(socket.gethostname())
 ADDR = (SERVER, PORT)
 FORMAT = 'utf-8'
 DISCONNECT_MESSAGE = '!DISCONNECT'
 
-server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server.bind(ADDR)
+client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+client.connect(ADDR)
 
-def handle_client(conn, addr):
-    print(f"[NEW CONNECTION] {addr} connected.")
-    connected = True
-    while connected:
-        msg_len = conn.recv(HEADER).decode(FORMAT)
-        if msg_len:    
-            msg_len = int(msg_len)
-            msg = conn.recv(msg_len).decode(FORMAT)
-            if msg == DISCONNECT_MESSAGE:
-                connected = False
-                break
-            print(f'[{addr}] {msg}')
-            conn.send("Msg received".encode(FORMAT)) # send to client
+def send(msg):
+    message = msg.encode(FORMAT)
+    msg_len = len(message)
+    send_len = str(msg_len).encode(FORMAT)
+    send_len += b' ' * (HEADER - len(send_len))
+    client.send(send_len)
+    client.send(message) # send to server
+    print(client.recv(2048).decode(FORMAT))
 
-    conn.close()
-
-def start():
-    server.listen()
-    print(f'[LISTENING] Server is listening on {SERVER}')
-    while True:
-        conn, addr = server.accept()
-        thread = threading.Thread(target=handle_client, args=(conn, addr))
-        thread.start()
-        print(f"[ACTIVE CONNECTIONS] {threading.activeCount() - 1}")
-
-print("[STARTING] server is starting...")
-start()
-# =============== SERVER ===============
+send('Hello World')
+input()
+send('Casamigos')
+input()
+send('For my amigos')
+input()
+send('It\'s gone')
+# send(DISCONNECT_MESSAGE)
+# =============== CLIENT ===============
 
 # Set up lidar 
 PORT_NAME = '/dev/ttyUSB0'  # Change this to the correct port name for your Rplidar
@@ -288,7 +278,8 @@ def main():
            for i, data in enumerate(lidar.iter_scans()): 
                 points = [[a, d] for (_, a, d) in list(data)]
                 print(i, points)
-             
+                print("[SENDING] client is sending points")
+                send(points)
                 #Check if it is safe to move forward
                 if clear_path_ahead(points) is True:
                     # If path is clear, move forward
