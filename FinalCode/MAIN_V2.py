@@ -284,7 +284,7 @@ def main():
                 points = [[a, d] for (_, a, d) in list(data)]
                 print(i, points)
                 print("[SENDING] client is sending points")
-                #send(points)
+                send(points)
                 #Check if it is safe to move forward
                 if clear_path_ahead(points) is True:
                     # If path is clear, move forward
